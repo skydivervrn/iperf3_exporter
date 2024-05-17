@@ -1,0 +1,17 @@
+FROM golang AS builder
+RUN apt install ca-certificates
+WORKDIR /iperf3_exporter
+COPY go.mod ./
+COPY go.sum ./
+RUN go mod download
+COPY . ./
+RUN CGO_ENABLED=0 go build -o iperf3_exporter
+
+FROM alpine:latest
+RUN apk add --no-cache iperf3
+
+COPY --from=builder /iperf3_exporter/iperf3_exporter ./
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+ENTRYPOINT ["/iperf3_exporter"]
+
+EXPOSE 8080

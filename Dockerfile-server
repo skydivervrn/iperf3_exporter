@@ -1,0 +1,7 @@
+FROM alpine:latest
+
+RUN apk add --no-cache iperf3
+
+ENTRYPOINT ["iperf3"]
+CMD ["-s"]
+EXPOSE 5201

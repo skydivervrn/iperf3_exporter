@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  iperf3-server:
+    image: "skydivervrn/iperf3-server"
+    ports:
+      - "5201:5201"
+    networks:
+      - "backend"
+
+  iperf3-client:
+    image: "skydivervrn/iperf3_exporter"
+    ports:
+      - "8080:8080"
+    networks:
+      - "backend"
+    command:
+      - "--target"
+      - "iperf3-server"
+
+  prometheus:
+    image: "prom/prometheus"
+    networks:
+      - "backend"
+
+networks:
+  backend: {}
+
