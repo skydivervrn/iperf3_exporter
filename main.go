@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -13,9 +14,18 @@ import (
 	"time"
 )
 
+const (
+	bandwidthDefaultValue = "10M"
+	timeDefaultValue      = "10"
+	parallelDefaultValue  = "1"
+)
+
 var (
-	targetHost = flag.String("target", "", "(Required) Server address to connect to")
-	targetPort = flag.String("p", "5201", "(Optional) Server port to connect to")
+	targetHost     = flag.String("target", "", "(Required) Server address to connect to")
+	targetPort     = flag.String("p", "5201", "(Optional) Server port to connect to")
+	bandwidth      = flag.String("b", bandwidthDefaultValue, fmt.Sprintf("(Optional) Bandwidth limit for iperf3. Default is '%s'", bandwidthDefaultValue))
+	timeToTramsmit = flag.String("t", timeDefaultValue, fmt.Sprintf("(Optional) The time in seconds to transmit for. Default is '%s'", timeDefaultValue))
+	parallel       = flag.String("P", parallelDefaultValue, fmt.Sprintf("(Optional) The number of simultaneous connections to make to the server. Default is '%s'", parallelDefaultValue))
 )
 
 type iperf3Collector struct {
@@ -49,12 +59,11 @@ func (collector *iperf3Collector) Describe(ch chan<- *prometheus.Desc) {
 func (collector *iperf3Collector) Collect(ch chan<- prometheus.Metric) {
 	ctx, cancel := context.WithTimeout(context.Background(), 4000*time.Second)
 	defer cancel()
-	out, err := exec.CommandContext(ctx, "/usr/bin/iperf3", "-c", *targetHost, "-J", "-p", *targetPort).Output()
+	out, err := exec.CommandContext(ctx, "/usr/bin/iperf3", "-c", *targetHost, "-J", "-p", *targetPort, "-b", *bandwidth, "-t", *timeToTramsmit, "-P", *parallel).Output()
 	if err != nil {
 		log.Printf("Failed to run iperf3: %s", err)
 		return
 	}
-	//log.Println(string(out))
 	log.Println("Collecting metrics")
 	stats := iperf3Result{}
 	if err := json.Unmarshal(out, &stats); err != nil {
